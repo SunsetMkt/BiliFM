@@ -137,7 +137,9 @@ class TestAudioDownload(unittest.TestCase):
                     with patch("bilifm.audio.requests.get", side_effect=fake_get):
                         audio.download()
 
-                self.assertEqual([params["cid"] for params in requested_params], ["1", "2"])
+                self.assertEqual(
+                    [params["cid"] for params in requested_params], ["1", "2"]
+                )
                 self.assertEqual(requested_downloads, ["https://audio.example.test/2"])
                 self.assertTrue(os.path.exists("Demo-Part-2.m4a"))
             finally:
