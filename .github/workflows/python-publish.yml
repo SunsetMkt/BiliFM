@@ -1,14 +1,13 @@
-name: publish to pypi
+name: Release
 
 "on":
   push:
     tags:
       - 'v*'
 
-
 jobs:
-  release_to_pypi:
-    name: Release to PyPI
+  release:
+    name: Release to PyPI and GitHub
     runs-on: ubuntu-latest
     environment:
       name: pypi
@@ -21,11 +20,23 @@ jobs:
       - name: Setup pdm
         id: setup-pdm
         uses: pdm-project/setup-pdm@v4
+        with:
+          python-version: '3.10'
       - name: Check output
         run: |
           echo ${{ steps.setup-pdm.outputs.pdm-bin }}
           echo ${{ steps.setup-pdm.outputs.pdm-version }}
           echo ${{ steps.setup-pdm.outputs.python-path }}
           echo ${{ steps.setup-pdm.outputs.python-version }}
-      - name: pypi-publish-by-pdm
-        run: pdm publish
+      - name: Build package
+        run: pdm build
+      - name: Publish to PyPI
+        run: pdm publish --no-build
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" dist/* \
+            --repo "${GITHUB_REPOSITORY}" \
+            --title "${GITHUB_REF_NAME}" \
+            --generate-notes

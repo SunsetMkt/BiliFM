@@ -7,7 +7,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.progress import BarColumn, DownloadColumn, Progress, TransferSpeedColumn
 
-from .util import AudioQualityEnums, get_signed_params
+from .util import AudioQualityEnums, gen_dm_args, get_signed_params
 
 console = Console()
 
@@ -19,7 +19,7 @@ DEFAULT_RETRY_DELAY = 2.0
 class Audio:
     bvid = ""
     title = ""
-    playUrl = "http://api.bilibili.com/x/player/wbi/playurl"
+    playUrl = "https://api.bilibili.com/x/player/wbi/playurl"
     part_list = []
 
     headers = {}
@@ -175,11 +175,13 @@ class Audio:
 
     def __get_play_url_payload(self, cid: str):
         params = get_signed_params(
-            {
-                "fnval": 16,
-                "bvid": self.bvid,
-                "cid": cid,
-            }
+            gen_dm_args(
+                {
+                    "fnval": 16,
+                    "bvid": self.bvid,
+                    "cid": cid,
+                }
+            )
         )
         last_payload = None
 
