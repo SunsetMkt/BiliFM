@@ -130,8 +130,8 @@ class TestAudioDownload(unittest.TestCase):
             cwd = os.getcwd()
             os.chdir(directory)
             try:
-                with open("Demo-Part-1.m4a", "wb") as f:
-                    f.write(b"already downloaded")
+                with open("Demo-Part-1.mp3", "wb") as f:
+                    f.write(b"\x00\x00\x00\x18ftypM4A already downloaded")
 
                 with patch("bilifm.audio.get_signed_params", side_effect=lambda p: p):
                     with patch("bilifm.audio.requests.get", side_effect=fake_get):
@@ -141,6 +141,8 @@ class TestAudioDownload(unittest.TestCase):
                     [params["cid"] for params in requested_params], ["1", "2"]
                 )
                 self.assertEqual(requested_downloads, ["https://audio.example.test/2"])
+                self.assertFalse(os.path.exists("Demo-Part-1.mp3"))
+                self.assertTrue(os.path.exists("Demo-Part-1.m4a"))
                 self.assertTrue(os.path.exists("Demo-Part-2.m4a"))
             finally:
                 os.chdir(cwd)

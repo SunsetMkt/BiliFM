@@ -108,22 +108,13 @@ class Audio:
                 ext = mimetypes.guess_extension(mime_type) or ".m4a"
 
                 if len(self.part_list) > 1:
-                    file_path = f"{self.title}-{part}{ext}"
+                    file_stem = f"{self.title}-{part}"
                 else:
-                    file_path = f"{self.title}{ext}"
+                    file_stem = self.title
 
-                if len(file_path) > 255:
-                    file_path = file_path[:255]
+                file_path = self.__build_file_path(file_stem, ext)
 
-                # 如果文件已存在，则跳过下载
-                if os.path.exists(file_path):
-                    console.print(
-                        Panel(
-                            f"{file_path} 已存在，跳过下载",
-                            style="yellow",
-                            expand=False,
-                        )
-                    )
+                if self.__skip_existing_file(file_path, file_stem, ext):
                     continue
 
                 response = requests.get(
@@ -230,6 +221,54 @@ class Audio:
             f"code={payload.get('code')}, message={payload.get('message')}, "
             f"data={data}"
         )
+
+    def __build_file_path(self, file_stem: str, ext: str) -> str:
+        file_path = f"{file_stem}{ext}"
+        if len(file_path) > 255:
+            file_path = file_path[:255]
+        return file_path
+
+    def __skip_existing_file(self, file_path: str, file_stem: str, ext: str) -> bool:
+        if os.path.exists(file_path):
+            console.print(
+                Panel(
+                    f"{file_path} 已存在，跳过下载",
+                    style="yellow",
+                    expand=False,
+                )
+            )
+            return True
+
+        legacy_mp3_path = self.__build_file_path(file_stem, ".mp3")
+        if ext != ".mp3" and os.path.exists(legacy_mp3_path):
+            legacy_ext = self.__guess_audio_extension_from_file(legacy_mp3_path)
+            if legacy_ext == ext:
+                os.rename(legacy_mp3_path, file_path)
+                console.print(
+                    Panel(
+                        f"{legacy_mp3_path} 实际为 {ext}，已重命名为 {file_path}，跳过下载",
+                        style="yellow",
+                        expand=False,
+                    )
+                )
+                return True
+
+        return False
+
+    def __guess_audio_extension_from_file(self, file_path: str) -> str | None:
+        with open(file_path, "rb") as f:
+            header = f.read(4096)
+
+        if len(header) >= 12 and header[4:8] == b"ftyp":
+            return ".m4a"
+
+        if header.startswith(b"ID3"):
+            return ".mp3"
+
+        if len(header) >= 2 and header[0] == 0xFF and header[1] & 0xE0 == 0xE0:
+            return ".mp3"
+
+        return None
 
     def __get_cid_title(self, bvid: str):
         url = "https://api.bilibili.com/x/web-interface/view"
